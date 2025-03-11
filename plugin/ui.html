@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Figma MCP Bridge</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+      background-color: #f5f5f5;
+      font-size: 14px;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 200px;
+      min-width: 300px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e5e5e5;
+      padding-bottom: 8px;
+    }
+    
+    .header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #eee;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-connecting .status-indicator {
+      background-color: #f39c12;
+    }
+    
+    .status-connected .status-indicator {
+      background-color: #2ecc71;
+    }
+    
+    .status-disconnected .status-indicator,
+    .status-error .status-indicator {
+      background-color: #e74c3c;
+    }
+    
+    .status-message {
+      flex-grow: 1;
+    }
+    
+    .logs {
+      flex-grow: 1;
+      overflow-y: auto;
+      background-color: #fff;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      border: 1px solid #e5e5e5;
+      margin-bottom: 16px;
+      min-height: 150px;
+      resize: vertical;
+    }
+    
+    .logs p {
+      margin: 5px 0;
+      word-break: break-all;
+    }
+    
+    .logs .command {
+      color: #2980b9;
+    }
+    
+    .logs .error {
+      color: #e74c3c;
+    }
+    
+    .logs .success {
+      color: #2ecc71;
+    }
+    
+    .logs .request {
+      color: #8e44ad;
+    }
+    
+    .logs .response {
+      color: #27ae60;
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .message-count {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    button {
+      background-color: #2980b9;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    button:hover {
+      background-color: #3498db;
+    }
+    
+    button:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+    
+    .details {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #666;
+      font-style: italic;
+      display: none;
+    }
+    
+    .show-details .details {
+      display: block;
+    }
+    
+    .copy-button {
+      font-size: 10px;
+      padding: 2px 6px;
+      margin-left: 6px;
+      background-color: #7f8c8d;
+    }
+    
+    .resize-handle {
+      width: 100%;
+      height: 8px;
+      cursor: ns-resize;
+      background: repeating-linear-gradient(
+        45deg,
+        #f1f1f1,
+        #f1f1f1 5px,
+        #e5e5e5 5px,
+        #e5e5e5 6px
+      );
+      border-radius: 0 0 4px 4px;
+      margin-top: -16px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Figma MCP Bridge</h2>
+      <span id="version">v1.1.0</span>
+    </div>
+    
+    <div id="status" class="status status-connecting">
+      <div class="status-indicator"></div>
+      <div id="status-message" class="status-message">Connecting to MCP server...</div>
+    </div>
+    
+    <div class="logs" id="logs">
+      <p>Initializing plugin...</p>
+    </div>
+    
+    <div class="resize-handle" id="resize-handle"></div>
+    
+    <div class="actions">
+      <div class="message-count">
+        <span id="sent-count">0</span> sent / <span id="received-count">0</span> received
+      </div>
+      <div class="action-buttons">
+        <button id="clear-logs-button">Clear Logs</button>
+        <button id="detail-toggle-button">Show Details</button>
+        <button id="reconnect-button">Stop</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // WebSocket connection
+    let ws = null;
+    let reconnectInterval = null;
+    const wsServerPort = 8766; // Must match code.js port
+    
+    // Connection status
+    let connectionStatus = 'connecting';
+    
+    // Auto reconnect control
+    let autoReconnectEnabled = true;
+    
+    // Message counters
+    let sentCount = 0;
+    let receivedCount = 0;
+    
+    // Detail mode
+    let showDetails = false;
+    
+    // Elements
+    const statusEl = document.getElementById('status');
+    const statusMessageEl = document.getElementById('status-message');
+    const logsEl = document.getElementById('logs');
+    const reconnectButton = document.getElementById('reconnect-button');
+    const clearLogsButton = document.getElementById('clear-logs-button');
+    const detailToggleButton = document.getElementById('detail-toggle-button');
+    const sentCountEl = document.getElementById('sent-count');
+    const receivedCountEl = document.getElementById('received-count');
+    const resizeHandle = document.getElementById('resize-handle');
+    
+    // Add event listeners
+    reconnectButton.addEventListener('click', () => {
+      if (autoReconnectEnabled) {
+        // Stop auto-reconnect
+        autoReconnectEnabled = false;
+        reconnectButton.textContent = 'Reconnect';
+        addLogEntry('Auto-reconnect disabled', 'command');
+        
+        // Clear existing reconnect interval
+        if (reconnectInterval) {
+          clearInterval(reconnectInterval);
+          reconnectInterval = null;
+        }
+      } else {
+        // Re-enable auto-reconnect and connect immediately
+        autoReconnectEnabled = true;
+        reconnectButton.textContent = 'Stop';
+        addLogEntry('Attempting to reconnect...', 'command');
+        connectToServer();
+      }
+    });
+    
+    clearLogsButton.addEventListener('click', () => {
+      clearLogs();
+    });
+    
+    detailToggleButton.addEventListener('click', () => {
+      toggleDetails();
+    });
+    
+    // Resizable logs
+    let startY;
+    let startHeight;
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      startY = e.clientY;
+      startHeight = parseInt(document.defaultView.getComputedStyle(logsEl).height, 10);
+      document.documentElement.addEventListener('mousemove', doDrag);
+      document.documentElement.addEventListener('mouseup', stopDrag);
+    });
+    
+    function doDrag(e) {
+      logsEl.style.height = (startHeight + e.clientY - startY) + 'px';
+    }
+    
+    function stopDrag() {
+      document.documentElement.removeEventListener('mousemove', doDrag);
+      document.documentElement.removeEventListener('mouseup', stopDrag);
+    }
+    
+    // Initialize on load
+    window.onload = () => {
+      // Connect to WebSocket server
+      connectToServer();
+      
+      // Listen for messages from plugin code
+      window.onmessage = onPluginMessage;
+    };
+    
+    // Connect to WebSocket server
+    function connectToServer() {
+      try {
+        // Close existing connection if any
+        if (ws) {
+          ws.close();
+        }
+        
+        // Create new WebSocket connection
+        ws = new WebSocket(`ws://localhost:${wsServerPort}`);
+        
+        // Update status
+        updateStatus('connecting', 'Connecting to MCP server...');
+        
+        // Connection opened
+        ws.onopen = () => {
+          console.log('Connected to MCP server');
+          
+          // Clear reconnect interval if exists
+          if (reconnectInterval) {
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+          }
+          
+          // Update status
+          updateStatus('connected', 'Connected to MCP server');
+          
+          // Send plugin info to server (will be provided by the plugin code)
+          const pluginInfo = window.pluginInfo;
+          if (pluginInfo) {
+            ws.send(JSON.stringify({
+              type: 'plugin-info',
+              data: pluginInfo
+            }));
+            incrementSent();
+          } else {
+            // Request plugin info from plugin code
+            parent.postMessage({ pluginMessage: { type: 'get-plugin-info' }}, '*');
+          }
+        };
+        
+        // Listen for messages from server
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            
+            // Log message
+            console.log('Received message from server:', message);
+            addLogEntry(`Received: ${message.type}`, 'command', message);
+            incrementReceived();
+            
+            // Forward message to plugin code
+            parent.postMessage({ pluginMessage: { type: 'ws-message', message } }, '*');
+          } catch (error) {
+            console.error('Error processing WebSocket message:', error);
+            addLogEntry(`Error: ${error.message}`, 'error');
+          }
+        };
+        
+        // Handle disconnection
+        ws.onclose = () => {
+          console.log('Disconnected from MCP server');
+          
+          // Update status
+          updateStatus('disconnected', autoReconnectEnabled ? 
+            'Disconnected from MCP server. Reconnecting...' : 
+            'Disconnected from MCP server. Auto-reconnect disabled.'
+          );
+          
+          // Set up reconnection if enabled
+          if (autoReconnectEnabled && !reconnectInterval) {
+            reconnectInterval = setInterval(connectToServer, 3000);
+          }
+        };
+        
+        // Handle errors
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          
+          // Update status
+          updateStatus('error', 'WebSocket connection error');
+          addLogEntry(`WebSocket error: ${error.message || 'Unknown error'}`, 'error');
+        };
+      } catch (error) {
+        console.error('Error connecting to WebSocket server:', error);
+        
+        // Update status
+        updateStatus('error', `Error connecting to WebSocket server: ${error.message}`);
+        addLogEntry(`Connection error: ${error.message}`, 'error');
+        
+        // Set up reconnection if enabled
+        if (autoReconnectEnabled && !reconnectInterval) {
+          reconnectInterval = setInterval(connectToServer, 3000);
+        }
+      }
+    }
+    
+    // Handle messages from plugin code
+    function onPluginMessage(event) {
+      const message = event.data.pluginMessage;
+      if (!message) return;
+      
+      console.log('Received message from plugin:', message);
+      
+      switch (message.type) {
+        case 'status':
+          // Update status display
+          updateStatus(message.status, message.message);
+          break;
+        
+        case 'ws-send':
+          // Send message to WebSocket server
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message.data));
+            addLogEntry(`Sent: ${message.data.type || 'message'}`, message.data.type === 'response' ? 'response' : 'request', message.data);
+            incrementSent();
+          } else {
+            addLogEntry('Cannot send: WebSocket not connected', 'error');
+            parent.postMessage({ 
+              pluginMessage: { 
+                type: 'ws-error',
+                error: 'WebSocket not connected'
+              } 
+            }, '*');
+          }
+          break;
+        
+        case 'plugin-info':
+          // Save plugin info for reconnection
+          window.pluginInfo = message.data;
+          
+          // Send to server if connected
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'plugin-info',
+              data: message.data
+            }));
+            incrementSent();
+          }
+          break;
+        
+        case 'command':
+          // Log command execution
+          addLogEntry(`Command: ${message.command} - ${message.message}`, 'command', { command: message.command, message: message.message });
+          break;
+      }
+    }
+    
+    // Update status display
+    function updateStatus(status, message) {
+      // Update status class
+      statusEl.className = `status status-${status}`;
+      statusMessageEl.textContent = message;
+      
+      // Update connection status
+      connectionStatus = status;
+      
+      // Add log entry
+      addLogEntry(message, status);
+      
+      // Update reconnect/stop button
+      if (status === 'connected' || status === 'connecting') {
+        reconnectButton.textContent = 'Stop';
+        reconnectButton.disabled = false;
+      } else if (status === 'disconnected' || status === 'error') {
+        reconnectButton.textContent = autoReconnectEnabled ? 'Stop' : 'Reconnect';
+        reconnectButton.disabled = false;
+      }
+      
+      // Notify plugin code
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'connection-status',
+          status,
+          message
+        } 
+      }, '*');
+    }
+    
+    // Toggle detail mode
+    function toggleDetails() {
+      showDetails = !showDetails;
+      if (showDetails) {
+        logsEl.classList.add('show-details');
+        detailToggleButton.textContent = 'Hide Details';
+      } else {
+        logsEl.classList.remove('show-details');
+        detailToggleButton.textContent = 'Show Details';
+      }
+    }
+    
+    // Clear logs
+    function clearLogs() {
+      logsEl.innerHTML = '';
+      addLogEntry('Logs cleared', 'command');
+    }
+    
+    // Increment sent count
+    function incrementSent() {
+      sentCount++;
+      sentCountEl.textContent = sentCount;
+    }
+    
+    // Increment received count  
+    function incrementReceived() {
+      receivedCount++;
+      receivedCountEl.textContent = receivedCount;
+    }
+    
+    // Add an entry to the logs
+    function addLogEntry(message, type = '', details = null) {
+      const entry = document.createElement('div');
+      
+      const mainText = document.createElement('p');
+      mainText.className = type;
+      mainText.textContent = message;
+      
+      if (details) {
+        // Add timestamp
+        const timestamp = new Date().toLocaleTimeString();
+        mainText.textContent = `[${timestamp}] ${message}`;
+        
+        // Create details element
+        const detailsEl = document.createElement('pre');
+        detailsEl.className = 'details';
+        detailsEl.textContent = JSON.stringify(details, null, 2);
+        
+        // Create copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-button';
+        copyBtn.textContent = 'Copy';
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(JSON.stringify(details, null, 2))
+            .then(() => {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+              }, 2000);
+            });
+        };
+        
+        mainText.appendChild(copyBtn);
+        entry.appendChild(mainText);
+        entry.appendChild(detailsEl);
+      } else {
+        entry.appendChild(mainText);
+      }
+      
+      logsEl.appendChild(entry);
+      logsEl.scrollTop = logsEl.scrollHeight;
+      
+      // Limit log size
+      while (logsEl.childElementCount > 100) {
+        logsEl.removeChild(logsEl.firstChild);
+      }
+    }
+  </script>
+</body>
+</html>

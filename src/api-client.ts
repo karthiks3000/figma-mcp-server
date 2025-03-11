@@ -13,11 +13,14 @@ import {
   FigmaStyle,
   FigmaComponent,
   FigmaVariable,
-  FigmaVariableCollection
+  FigmaVariableCollection,
+  FigmaCreateFileResponse,
+  FigmaCreateNodeResponse
 } from './types.js';
 
 /**
  * Client for interacting with the Figma API
+ * Includes methods for both reading and modifying designs
  */
 export class FigmaApiClient {
   private axiosInstance: AxiosInstance;
@@ -275,6 +278,170 @@ export class FigmaApiClient {
       return response.data.versions || [];
     } catch (error) {
       console.error('Error getting versions:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Create a new file
+   * @param name - The name of the file
+   * @param template - Optional template file key to use as a starting point
+   * @returns The new file key and name
+   */
+  async createFile(name: string, template?: string): Promise<{ key: string; name: string }> {
+    try {
+      const params: Record<string, string> = { name };
+      
+      if (template) {
+        params.template = template;
+      }
+      
+      // Use the proper full URL for v2 endpoint
+      const response = await axios.post<FigmaCreateFileResponse>(
+        'https://api.figma.com/v2/files',
+        params,
+        {
+          headers: {
+            'X-Figma-Token': this.axiosInstance.defaults.headers['X-Figma-Token'],
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.data.key) {
+        throw new Error('Failed to create file - no key returned');
+      }
+      
+      return {
+        key: response.data.key,
+        name: response.data.name || name,
+      };
+    } catch (error) {
+      console.error('Error creating file:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Create a new node
+   * @param parentNodeId - The ID of the parent node
+   * @param nodeData - Data for the new node
+   * @returns The new node ID
+   */
+  async createNode(parentNodeId: string, nodeData: any): Promise<string> {
+    try {
+      const response = await this.axiosInstance.post<FigmaCreateNodeResponse>(
+        `/files/${this.fileId}/nodes/${parentNodeId}`,
+        nodeData
+      );
+      
+      if (!response.data.id) {
+        throw new Error('Failed to create node - no ID returned');
+      }
+      
+      return response.data.id;
+    } catch (error) {
+      console.error('Error creating node:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update an existing node
+   * @param nodeId - The ID of the node to update
+   * @param properties - The properties to update
+   * @returns Success status
+   */
+  async updateNode(nodeId: string, properties: any): Promise<boolean> {
+    try {
+      await this.axiosInstance.put(
+        `/files/${this.fileId}/nodes/${nodeId}`,
+        properties
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating node:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Delete an existing node
+   * @param nodeId - The ID of the node to delete
+   * @returns Success status
+   */
+  async deleteNode(nodeId: string): Promise<boolean> {
+    try {
+      await this.axiosInstance.delete(`/files/${this.fileId}/nodes/${nodeId}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting node:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Create an instance of a component
+   * @param parentNodeId - The ID of the parent node
+   * @param componentKey - The component key to instantiate
+   * @param name - The name of the instance
+   * @param x - X position
+   * @param y - Y position
+   * @param scaleX - X scale factor (1 = 100%)
+   * @param scaleY - Y scale factor (1 = 100%)
+   * @returns The new instance node ID
+   */
+  async createComponentInstance(
+    parentNodeId: string,
+    componentKey: string,
+    name: string,
+    x: number,
+    y: number,
+    scaleX: number = 1,
+    scaleY: number = 1
+  ): Promise<string> {
+    try {
+      const response = await this.axiosInstance.post<FigmaCreateNodeResponse>(
+        `/files/${this.fileId}/components/${componentKey}/instances`,
+        {
+          parentNodeId,
+          name,
+          position: { x, y },
+          scale: { x: scaleX, y: scaleY },
+        }
+      );
+      
+      if (!response.data.id) {
+        throw new Error('Failed to create component instance - no ID returned');
+      }
+      
+      return response.data.id;
+    } catch (error) {
+      console.error('Error creating component instance:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Set properties on a component instance
+   * @param instanceId - The ID of the component instance
+   * @param properties - The properties to set
+   * @returns Success status
+   */
+  async setInstanceProperties(
+    instanceId: string,
+    properties: Record<string, string | number | boolean>
+  ): Promise<boolean> {
+    try {
+      await this.axiosInstance.put(
+        `/files/${this.fileId}/instances/${instanceId}/properties`,
+        { properties }
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting instance properties:', error);
       throw error;
     }
   }

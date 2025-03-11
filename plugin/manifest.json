@@ -1,0 +1,17 @@
+{
+  "name": "Figma MCP Bridge",
+  "id": "figma-mcp-bridge",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "permissions": [
+    "currentuser"
+  ],
+  "networkAccess": {
+    "allowedDomains": ["http://localhost:8766", "ws://localhost:8766"],
+    "reasoning": "test",
+    "devAllowedDomains": ["http://localhost:8766", "ws://localhost:8766"]
+  },
+  "documentAccess": "document"
+}

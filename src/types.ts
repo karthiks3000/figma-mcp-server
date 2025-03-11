@@ -264,6 +264,126 @@ export interface GetAssetsArgs {
   scale?: number;
 }
 
+// API response types for creation operations
+export interface FigmaCreateFileResponse {
+  key: string;
+  name: string;
+  lastModified: string;
+  thumbnailUrl: string;
+  err?: string;
+}
+
+export interface FigmaCreateNodeResponse {
+  id: string;
+  err?: string;
+}
+
+// Design creation argument types
+export interface CreateFileArgs {
+  name: string;
+  template?: string;
+}
+
+export interface CreateFrameArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CreateShapeArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  type: 'rectangle' | 'ellipse' | 'polygon';
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill?: FigmaFill | FigmaFill[];
+  cornerRadius?: number; // For rectangles
+  points?: number; // For polygons
+}
+
+export interface CreateTextArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  characters: string;
+  style?: FigmaTextStyle;
+}
+
+export interface CreateComponentArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  childrenData?: any[];
+}
+
+export interface CreateComponentInstanceArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  componentKey: string;
+  name: string;
+  x: number;
+  y: number;
+  scaleX?: number;
+  scaleY?: number;
+}
+
+export interface UpdateNodeArgs {
+  figmaUrl: string;
+  nodeId: string;
+  properties: any;
+}
+
+export interface SetFillArgs {
+  figmaUrl: string;
+  nodeId: string;
+  fill: FigmaFill | FigmaFill[];
+}
+
+export interface SetStrokeArgs {
+  figmaUrl: string;
+  nodeId: string;
+  stroke: any;
+  strokeWeight?: number;
+}
+
+export interface SetEffectsArgs {
+  figmaUrl: string;
+  nodeId: string;
+  effects: any[];
+}
+
+export interface SmartCreateElementArgs {
+  figmaUrl: string;
+  parentNodeId: string;
+  type: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  properties?: any;
+}
+
+export interface DeleteNodeArgs {
+  figmaUrl: string;
+  nodeId: string;
+}
+
 // New types for enhanced features
 export interface FigmaVariable {
   id: string;

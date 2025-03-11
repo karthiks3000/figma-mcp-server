@@ -8,8 +8,10 @@
     "start": "node build/index.js",
     "dev": "ts-node --esm src/index.ts",
     "test": "tsc && node build/test.js",
+    "create-test": "tsc && node build/create-test.js",
     "test:large-file": "tsc && node build/large-file-test.js",
-    "validate-design": "tsc && node build/design-validator.js"
+    "validate-design": "tsc && node build/design-validator.js",
+    "test:plugin": "tsc && node build/plugin-test.js"
   },
   "keywords": [],
   "author": "",
@@ -17,10 +19,14 @@
   "description": "",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.0",
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }
