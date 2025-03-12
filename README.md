@@ -1,52 +1,154 @@
-# Figma MCP Bridge Plugin
+# Figma MCP Server
 
-This plugin creates a bridge between the Figma API and the Model Context Protocol (MCP), allowing for programmatic control of Figma designs.
+A Model Context Protocol (MCP) server for interacting with Figma designs. This server allows Claude AI to extract design information from Figma files and create or update designs using the Figma plugin.
 
-## How to Use the Plugin Test
+## Features
 
-To run the plugin test successfully, follow these steps:
+- **Readonly Mode**: Extract design information from Figma files using a URL link
+- **Write Mode**: Create or update designs by establishing a connection with the Figma plugin
+- **Comprehensive API**: Access to a wide range of Figma features through a unified API
+- **Unit Testing**: Includes tests to verify server functionality
+- **Integration Testing**: Tests the flow from creating designs to reading them
 
-1. **Open Figma Desktop Application**
+## Modes
 
-2. **Import the Plugin**
-   - In Figma, go to Plugins > Development > Import plugin from manifest...
-   - Select the `manifest.json` file from the `plugin` directory
+### Readonly Mode
 
-3. **Run the Plugin**
-   - After importing, the plugin should appear in your Development plugins
-   - Run the plugin from the Plugins > Development menu
-   - A dialog will appear showing the MCP Bridge UI
+In readonly mode, the server can extract design information from a Figma file using a URL link. This includes:
 
-4. **Run the Test Script**
-   - With the plugin running in Figma, open a terminal
-   - Navigate to the project directory
-   - Run: `npm run build && node build/plugin-test.js`
+- File information
+- Node details
+- Styles (colors, text, effects)
+- Assets (images)
+- Variables
+- Component identification
+- Variant detection
+- Responsive design detection
 
-5. **View Results**
-   - Check your Figma canvas for the created Poll Results component
-   - The test creates a complete poll results UI based on the provided design
+### Write Mode
 
-## Troubleshooting
+In write mode, the server can create or update designs by establishing a connection with the Figma plugin. This includes:
 
-- **Connection Timeout**: Make sure the plugin is running in Figma before executing the test script
-- **WebSocket Issues**: If you get WebSocket errors, ensure no other instances of the plugin are running
-- **Timeouts in Responses**: The plugin may report timeouts even though elements were created successfully in Figma. This is due to WebSocket communication delays and doesn't affect the actual creation of elements.
+- Creating frames, shapes, text, and components
+- Creating component instances
+- Updating node properties
+- Setting fills, strokes, and effects
+- Deleting nodes
+- Smart element creation
 
-## Plugin Features
+## Prerequisites
 
-This plugin demonstrates:
+- Node.js 18 or higher
+- A Figma account and access token
+- The Figma MCP plugin installed in the Figma desktop app (for write mode)
 
-1. Creating complex UI components programmatically
-2. Using gradients and solid fills
-3. Creating and using Figma components
-4. Managing text and rectangle elements
-5. Creating component instances
-6. Adding effects like shadows
-7. Validating component creation with API calls
+## Installation
 
-## Development Notes
+1. Clone the repository:
 
-- The plugin UI is resizable and displays detailed logs
-- The plugin bridge uses WebSockets for communication
-- Color values should be provided without alpha (a) property when creating fills
-- For gradients, always include `gradientTransform` property
+```bash
+git clone https://github.com/your-username/figma-server.git
+cd figma-server
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Build the server:
+
+```bash
+npm run build
+```
+
+## Configuration
+
+The server requires a Figma access token to be set in the environment:
+
+```bash
+export FIGMA_ACCESS_TOKEN=your_figma_access_token
+```
+
+## Usage
+
+### Starting the Server
+
+```bash
+npm start
+```
+
+### Development Mode
+
+```bash
+npm run dev
+```
+
+### Running Tests
+
+```bash
+# Run unit tests
+npm test
+
+# Run integration tests (TypeScript)
+npm run test:integration
+
+# Run integration tests (JavaScript)
+npm run test:integration-js
+
+# Run all tests
+npm run test:all
+
+# Test plugin connection
+npm run test:plugin-connection-js
+```
+
+The plugin connection test is a simple WebSocket server that listens for connections from the Figma plugin. It's useful for verifying that the plugin is running and can connect to the server.
+
+The JavaScript versions of the tests are provided as alternatives that don't require TypeScript compilation, which can be more reliable in some environments.
+
+## Project Structure
+
+```
+figma-server/
+├── src/                      # Source code
+│   ├── core/                 # Core functionality
+│   │   ├── config.ts         # Configuration management
+│   │   ├── logger.ts         # Logging utilities
+│   │   ├── types.ts          # Common type definitions
+│   │   └── utils.ts          # Utility functions
+│   ├── readonly/             # Readonly mode implementation
+│   │   ├── api-client.ts     # Figma REST API client
+│   │   ├── design-manager.ts # Design information extraction
+│   │   └── style-extractor.ts # Style extraction utilities
+│   ├── write/                # Write mode implementation
+│   │   ├── plugin-bridge.ts  # WebSocket server for plugin communication
+│   │   ├── design-creator.ts # Design creation utilities
+│   │   └── component-utils.ts # Component utilities
+│   ├── mcp/                  # MCP server implementation
+│   │   ├── server.ts         # Main MCP server
+│   │   ├── tools.ts          # Tool definitions
+│   │   └── handlers.ts       # Tool handlers
+│   ├── index.ts              # Entry point
+│   └── mode-manager.ts       # Mode management (readonly/write)
+├── tests/                    # Test files
+│   ├── unit/                 # Unit tests
+│   │   └── server.test.ts    # Server tests
+│   └── integration/          # Integration tests
+│       └── design-flow.test.ts # Design flow tests
+├── plugin/                   # Figma plugin
+│   ├── code.js               # Plugin code
+│   ├── manifest.json         # Plugin manifest
+│   └── ui.html               # Plugin UI
+└── docs/                     # Documentation
+    └── usage.md              # Usage instructions for Claude AI
+```
+
+## Documentation
+
+For detailed usage instructions, see the [usage documentation](docs/usage.md).
+
+## License
+
+ISC

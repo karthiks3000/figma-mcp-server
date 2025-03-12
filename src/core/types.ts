@@ -2,6 +2,12 @@
  * TypeScript interfaces for Figma API objects and server types
  */
 
+// Server mode enum
+export enum FigmaServerMode {
+  READONLY = 'readonly',
+  WRITE = 'write'
+}
+
 // Common Figma API types
 export interface FigmaColor {
   r: number;
@@ -237,6 +243,30 @@ export interface DesignInformation {
   uiComponents: UIComponents;
 }
 
+// Plugin communication types
+export interface PluginInfo {
+  name: string;
+  id: string;
+  user?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface CommandResponse {
+  id: string;
+  success: boolean;
+  result?: any;
+  error?: string;
+}
+
+export interface PluginCommand {
+  id: string;
+  command: string;
+  params: any;
+  responseRequired?: boolean;
+}
+
 // Tool argument types
 export interface ValidateTokenArgs {
   figmaUrl: string;
@@ -285,7 +315,7 @@ export interface CreateFileArgs {
 }
 
 export interface CreateFrameArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   name: string;
   x: number;
@@ -295,7 +325,7 @@ export interface CreateFrameArgs {
 }
 
 export interface CreateShapeArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   type: 'rectangle' | 'ellipse' | 'polygon';
   name: string;
@@ -309,7 +339,7 @@ export interface CreateShapeArgs {
 }
 
 export interface CreateTextArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   name: string;
   x: number;
@@ -321,7 +351,7 @@ export interface CreateTextArgs {
 }
 
 export interface CreateComponentArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   name: string;
   x: number;
@@ -332,7 +362,7 @@ export interface CreateComponentArgs {
 }
 
 export interface CreateComponentInstanceArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   componentKey: string;
   name: string;
@@ -343,32 +373,32 @@ export interface CreateComponentInstanceArgs {
 }
 
 export interface UpdateNodeArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   nodeId: string;
   properties: any;
 }
 
 export interface SetFillArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   nodeId: string;
   fill: FigmaFill | FigmaFill[];
 }
 
 export interface SetStrokeArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   nodeId: string;
   stroke: any;
   strokeWeight?: number;
 }
 
 export interface SetEffectsArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   nodeId: string;
   effects: any[];
 }
 
 export interface SmartCreateElementArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   parentNodeId: string;
   type: string;
   name: string;
@@ -380,7 +410,7 @@ export interface SmartCreateElementArgs {
 }
 
 export interface DeleteNodeArgs {
-  figmaUrl: string;
+  figmaUrl?: string; // Optional in write mode
   nodeId: string;
 }
 
@@ -436,4 +466,33 @@ export interface FigmaComponentSet {
 export interface FigmaConstraint {
   type: 'SCALE' | 'WIDTH' | 'HEIGHT' | 'LEFT' | 'RIGHT' | 'TOP' | 'BOTTOM' | 'CENTER' | 'HORIZONTAL' | 'VERTICAL';
   value: number;
+}
+
+// MCP Tool definitions
+export enum FigmaTool {
+  // Readonly mode tools
+  VALIDATE_TOKEN = 'validate_token',
+  GET_FILE_INFO = 'get_file_info',
+  GET_NODE_DETAILS = 'get_node_details',
+  EXTRACT_STYLES = 'extract_styles',
+  GET_ASSETS = 'get_assets',
+  GET_VARIABLES = 'get_variables',
+  IDENTIFY_COMPONENTS = 'identify_components',
+  DETECT_VARIANTS = 'detect_variants',
+  DETECT_RESPONSIVE = 'detect_responsive',
+  
+  // Write mode tools
+  SWITCH_TO_WRITE_MODE = 'switch_to_write_mode',
+  CREATE_FRAME = 'create_frame',
+  CREATE_SHAPE = 'create_shape',
+  CREATE_TEXT = 'create_text',
+  CREATE_COMPONENT = 'create_component',
+  CREATE_COMPONENT_INSTANCE = 'create_component_instance',
+  UPDATE_NODE = 'update_node',
+  DELETE_NODE = 'delete_node',
+  SET_FILL = 'set_fill',
+  SET_STROKE = 'set_stroke',
+  SET_EFFECTS = 'set_effects',
+  SMART_CREATE_ELEMENT = 'smart_create_element',
+  LIST_AVAILABLE_COMPONENTS = 'list_available_components',
 }
