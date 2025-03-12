@@ -187,6 +187,16 @@ await use_mcp_tool({
   }
 });
 ```
+## Installing the plugin
+- Open the figma desktop app
+- Open the file in which you want to work
+- Right click -> Plugins -> Development -> Import plugin from manifest -> select the manifest.json file from /plugin
+- Start the plugin by right click -> Development -> Figma MCP Bridge
+- Ask Claude to switch to write mode so that it connect to the Figma MCP Bridge
+
+View of the plugin working and connected to Claude -
+
+![Logo](./plugin.png)
 
 ## Available Tools
 
